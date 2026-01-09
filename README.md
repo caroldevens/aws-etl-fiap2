@@ -35,3 +35,5 @@ As dependências Python do projeto estão listadas no arquivo `requirements.txt`
 
 - `yfinance`: Para extração de dados do Yahoo Finance.
 - `matplotlib`: Para visualização de dados (usado para testes locais).
+
+ 

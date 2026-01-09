@@ -1,5 +1,4 @@
 import yfinance as yf
-import matplotlib.pyplot as plt
 
 def extract_stock_data(ticker, start_date, end_date):
     """
@@ -23,14 +22,3 @@ if __name__ == "__main__":
     end_date = "2024-12-31"
     data = extract_stock_data(ticker, start_date, end_date)
     print(data)
-
-    if "VALUE (US$)" in data.columns:
-        data[["VALUE (US$)"]].plot(figsize=(10, 5))
-    else:
-        data[["Close"]].plot(figsize=(10, 5))
-    plt.title("Série Temporal - Itaú")
-    plt.xlabel("Data")
-    plt.ylabel("US$")
-    plt.tight_layout()
-    plt.show()
-
