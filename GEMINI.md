@@ -1,51 +1,83 @@
-# Project Overview
+# GEMINI.md: Project Overview for aws-etl-fiap
 
-This project implements a serverless ETL (Extract, Transform, Load) pipeline on AWS for processing financial market data from the B3 stock exchange. The entire infrastructure is provisioned using Terraform, and the data processing logic is written in Python for AWS Glue and AWS Lambda.
+This document provides a comprehensive overview of the `aws-etl-fiap` project, designed to facilitate understanding and future development.
 
-The pipeline is designed with a decoupled architecture:
-1.  An **AWS Glue job (`b3_collector.py`)** is triggered on a schedule. It extracts stock data using the `yfinance` library and saves it in Parquet format to an S3 bucket in a `raw/` directory.
-2.  The arrival of new data in the `raw/` directory triggers an **AWS Lambda function (`glue_starter_lambda_function.py`)**.
-3.  The Lambda function starts a second **AWS Glue job (`b3_transform.py`)**, which reads the raw data, applies business transformations, and saves the cleaned, enriched data to a `refined/` directory in the same S3 bucket.
-4.  The transformed data is cataloged in the **AWS Glue Data Catalog**, making it available for querying via **Amazon Athena**.
+## Project Overview
 
-The infrastructure is managed as code using Terraform, with separate modules for S3, IAM, Glue, and Lambda. The project appears to be configured for local development against a LocalStack environment.
+This project implements an end-to-end ETL (Extract, Transform, Load) pipeline on AWS for financial market data. Its primary purpose is to collect daily stock data from the Brazilian stock exchange (B3), process it, and make it available for SQL-based analysis via Amazon Athena.
+
+### Core Technologies
+
+*   **Infrastructure as Code:** Terraform
+*   **Cloud Provider:** Amazon Web Services (AWS)
+*   **Key AWS Services:**
+    *   **AWS Glue:** For serverless Spark-based data extraction and transformation (ETL).
+    *   **AWS Lambda:** For event-driven orchestration (triggering the Glue transformation job).
+    *   **Amazon S3:** For data storage (raw and refined data lakes) and hosting scripts.
+    *   **Amazon Athena:** For interactive querying of the refined data using standard SQL.
+    *   **Amazon EventBridge:** For scheduling the start of the daily pipeline.
+*   **Primary Language:** Python
+*   **Core Libraries:**
+    *   **PySpark:** The Python API for Apache Spark, used within AWS Glue to perform large-scale, distributed data processing during the transformation phase.
+    *   **Pandas:** Used in the collection script for initial data handling and structuring after fetching it from the `yfinance` API.
+    *   **yfinance:** The library used to extract financial market data from Yahoo Finance.
+    *   **Boto3:** The AWS SDK for Python, enabling the Lambda function to programmatically interact with other AWS services, specifically to start the Glue transformation job.
+
+### Architecture
+
+The architecture is a decoupled, event-driven pipeline:
+
+1.  **Scheduled Trigger:** An Amazon EventBridge rule is configured to run daily, which starts the initial data collection process.
+2.  **Extraction (Glue Job):** The `b3_collector.py` script runs as an AWS Glue job. It uses the `yfinance` library to fetch historical stock data for a predefined list of tickers. The raw data is then saved in Parquet format to `s3://<bucket-name>/raw/`, partitioned by the processing date.
+3.  **S3 Trigger & Orchestration (Lambda):** The arrival of a new object in the `raw/` S3 prefix automatically triggers the `glue_starter_lambda_function.py` Lambda function. This function's sole responsibility is to start the next stage of the pipeline.
+4.  **Transformation (Glue Job):** The Lambda function invokes a second AWS Glue job running the `b3_transform.py` script. This job reads the raw data, performs transformations (e.g., renames columns, calculates price variations over time), and cleans the data.
+5.  **Load (S3 & Glue Catalog):** The transformed, refined data is written in Parquet format to `s3://<bucket-name>/refined/`, partitioned by both processing date and stock ticker for efficient querying. The Glue job also creates or updates tables in the AWS Glue Data Catalog, making the datasets schema-aware and ready for querying.
+6.  **Analysis (Athena):** End-users can query the refined data directly using standard SQL through Amazon Athena.
 
 ## Building and Running
 
-### Dependencies
+The project's infrastructure and deployment are managed via Terraform. The Python scripts are executed within the AWS Glue and Lambda services.
 
-The project's Python dependencies are listed in `requirements.txt`. To install them, run:
+### Infrastructure Deployment
 
-```bash
-pip install -r requirements.txt
-```
+1.  **Navigate to the infrastructure directory:**
+    ```bash
+    cd infra/<module_directory> 
+    # e.g., cd infra/s3
+    ```
 
-### Infrastructure
+2.  **Initialize Terraform:**
+    This command downloads the necessary provider plugins. It only needs to be run once per module or after configuration changes.
+    ```bash
+    terraform init
+    ```
 
-The AWS infrastructure is managed by Terraform. The configuration is located in the `infra/` directory. The `infra/iam/providers.tf` file is configured to use LocalStack, suggesting a local development setup.
+3.  **Plan the deployment:**
+    This command shows you what changes will be made to your AWS infrastructure. It's a safe way to preview changes.
+    ```bash
+    terraform plan
+    ```
 
-To provision the infrastructure locally (assuming you have LocalStack and Terraform installed):
-
-```bash
-cd infra/s3
-terraform init
-terraform apply
-
-cd ../iam
-terraform init
-terraform apply
-
-# (Apply for other terraform modules)
-```
+4.  **Apply the changes:**
+    This command provisions the resources in your AWS account as defined in the Terraform files.
+    ```bash
+    terraform apply
+    ```
 
 ### Running the Pipeline
 
-1.  **Deployment**: Deploy the Glue scripts and Lambda function to your AWS (or LocalStack) environment. The Terraform scripts should handle the creation of the necessary resources.
-2.  **Execution**: The pipeline is designed to be triggered automatically. The initial data extraction (`b3_collector.py`) is scheduled (likely via EventBridge, as per the ADR), and subsequent steps are triggered by S3 events.
+The pipeline is designed to run automatically.
+1.  **Automated Start:** The EventBridge schedule will trigger the `b3_collector` job at its configured time.
+2.  **Event-Driven Flow:** The rest of the pipeline (Lambda trigger and `b3_transform` job) executes automatically in response to data being written to S3.
+3.  **Manual Trigger:** You can manually start the pipeline by running the `b3_collector` Glue job from the AWS Management Console.
 
 ## Development Conventions
 
-*   **ETL Logic**: The core ETL logic is implemented in Python using PySpark within AWS Glue jobs. There is a clear separation between the extraction (`b3_collector.py`) and transformation (`b3_transform.py`) steps.
-*   **Infrastructure as Code**: All AWS resources are defined and managed using Terraform. The configuration is modular, with different components of the infrastructure separated into their own directories.
-*   **Data Format**: Data is stored in the S3 bucket in Parquet format, which is a columnar storage format optimized for analytics.
-*   **Partitioning**: The data in S3 is partitioned by date and, in the `refined` layer, by stock ticker. This is a best practice for optimizing query performance in Athena.
+*   **Modular Terraform:** The Terraform code is organized into modules (`infra/s3`, `infra/iam`, etc.) to promote reusability and maintainability. Each module is responsible for a specific component of the architecture.
+*   **Python Scripts:**
+    *   `b3_collector.py`: Handles data extraction. It uses `yfinance` and converts the data into a PySpark DataFrame before saving to S3.
+    *   `b3_transform.py`: Handles the transformation logic using PySpark DataFrame operations. It fulfills specific business requirements like renaming columns and calculating new fields based on date logic.
+    *   `glue_starter_lambda_function.py`: A simple Python function for AWS Lambda responsible for starting a Glue job.
+*   **Data Partitioning:**
+    *   Raw data is partitioned by `dataproc` (processing date).
+    *   Refined data is partitioned by `dataproc` and `ticker` to optimize analytical queries in Athena.
