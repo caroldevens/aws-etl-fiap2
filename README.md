@@ -64,7 +64,7 @@ Os dados são organizados no S3 da seguinte maneira:
 A infraestrutura é definida em módulos do Terraform, localizados no diretório `infra/`. A estrutura modular inclui:
 
 -   `eventbridge/`: Define o agendamento do pipeline.
--   `lambda-glue-starter/`: Define a função Lambda que starta o job de Transofrmação, que o script está no arquivo b3_transform.py e seu gatilho é a inserção dos dados no S3 pelo Glue Job de Extração(b3_collector.py).
+-   `lambda-glue-starter/`: Define a função Lambda que starta o job de Transformação, que o script está no arquivo b3_transform.py e seu gatilho é a inserção dos dados no S3 pelo Glue Job de Extração(b3_collector.py).
 -   `glue/`: Define os dois jobs do Glue, o Data Catalog e as permissões necessárias.
 -   `s3/`: Define o bucket S3 para armazenamento dos dados.
 
