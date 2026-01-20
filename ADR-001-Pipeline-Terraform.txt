@@ -1,7 +1,6 @@
-
 # ADR-001: Arquitetura do Pipeline de Dados com Terraform
 
-**Status:** Proposto
+**Status:** Aceito
 
 ## Contexto
 
@@ -46,19 +45,19 @@ Adotaremos o Terraform para provisionar toda a infraestrutura na AWS. A estrutur
     *   O bucket terá os prefixos: `raw/` (**Requisito 2**), `refined/` (**Requisito 6**) e `scripts/`.
 
 4.  **Função Lambda:**
-    *   **Lambda de Início do Glue:** Uma função (`aws_lambda_function`) com o código de `src/glue_starter_lambda_function.py`, acionada por eventos S3 para iniciar o job de transformação do Glue, atendendo aos **Requisitos 3 e 4**.
+    *   **Lambda de Início do Glue:** Uma função (`aws_lambda_function`) com o código de `src/lambda/glue_starter_lambda_function.py`, acionada por eventos S3 para iniciar o job de transformação do Glue, atendendo aos **Requisitos 3 e 4**.
     *   A função terá uma IAM Role (`aws_iam_role`) com permissões específicas para iniciar um job do Glue.
 
 5.  **Glue (ETL e Catálogo de Dados):**
-    *   **Glue Job de Extração:** Um `aws_glue_job` para extrair os dados. O script (`src/glue_extractor_job.py`) conterá a lógica para os **Requisitos 1 e 2**.
-    *   **Glue Job de Transformação:** Um segundo `aws_glue_job` para transformar os dados. O script (`src/glue_transformer_job.py`) conterá a lógica para o **Requisito 5**.
+    *   **Glue Job de Extração:** Um `aws_glue_job` para extrair os dados. O script (`src/glue/b3_collector.py`) conterá a lógica para os **Requisitos 1 e 2**.
+    *   **Glue Job de Transformação:** Um segundo `aws_glue_job` para transformar os dados. O script (`src/glue/b3_transform.py`) conterá a lógica para o **Requisito 5**.
     *   **Glue Catalog:** Um banco de dados (`aws_glue_catalog_database`) será criado. O job de transformação será responsável por catalogar os dados refinados, conforme o **Requisito 7**.
     *   Os jobs terão IAM Roles com permissões apropriadas.
 
 6.  **Scripts da Aplicação:**
-    *   `src/glue_extractor_job.py`: Script PySpark para o job de extração do Glue.
-    *   `src/glue_transformer_job.py`: Script PySpark para o job de transformação do Glue.
-    *   `src/glue_starter_lambda_function.py`: Script Python para a função Lambda que aciona o job de transformação.
+    *   `src/glue/b3_collector.py`: Script PySpark para o job de extração do Glue.
+    *   `src/glue/b3_transform.py`: Script PySpark para o job de transformação do Glue.
+    *   `src/lambda/glue_starter_lambda_function.py`: Script Python para a função Lambda que aciona o job de transformação.
 
 ### Estrutura de Módulos Terraform Proposta
 

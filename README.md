@@ -18,6 +18,9 @@ Este projeto implementa um pipeline de ETL (Extração, Transformação e Carga)
 
 ## Arquitetura do Pipeline
 
+![Diagrama de Arquitetura](docs/arquiteutra.png) Diagrama de arquiteura
+
+
 A arquitetura desacoplada utiliza múltiplos serviços da AWS para criar um pipeline robusto e escalável:
 
 1.  **Agendamento (EventBridge):** Um agendamento diário no Amazon EventBridge aciona o primeiro job do AWS Glue, iniciando o pipeline.
