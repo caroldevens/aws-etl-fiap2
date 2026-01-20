@@ -9,10 +9,10 @@ Toda a infraestrutura é provisionada como código utilizando Terraform, conform
 A arquitetura desacoplada utiliza múltiplos serviços da AWS para criar um pipeline robusto e escalável:
 
 1.  **Agendamento (EventBridge):** Um agendamento diário no Amazon EventBridge aciona o primeiro job do AWS Glue, iniciando o pipeline.
-2.  **Extração (AWS Glue):** O primeiro job (`glue_extractor_job.py`) é responsável por extrair dados de ações da internet (usando a biblioteca `yfinance`) e salvá-los em formato Parquet no bucket S3, dentro do prefixo `raw/`.
+2.  **Extração (AWS Glue):** O primeiro job (`b3_collector.py`) é responsável por extrair dados de ações da internet (usando a biblioteca `yfinance`) e salvá-los em formato Parquet no bucket S3, dentro do prefixo `raw/`.
 3.  **Gatilho (S3 + Lambda):** A chegada de um novo arquivo em `raw/` aciona uma função AWS Lambda (`glue_starter_lambda_function.py`).
 4.  **Orquestração (Lambda):** A função Lambda atua como um orquestrador, iniciando a execução do segundo job do AWS Glue.
-5.  **Transformação (AWS Glue):** O segundo job (`glue_transformer_job.py`) lê os dados brutos de `raw/`, aplica as transformações de negócio necessárias e salva os dados enriquecidos no prefixo `refined/`.
+5.  **Transformação (AWS Glue):** O segundo job (`b3_transform.py`) lê os dados brutos de `raw/`, aplica as transformações de negócio necessárias e salva os dados enriquecidos no prefixo `refined/`.
 6.  **Catálogo de Dados (Glue Catalog):** Ao final do processo, o job de transformação atualiza o AWS Glue Data Catalog, tornando os dados disponíveis para consulta.
 7.  **Análise (Amazon Athena):** Os dados finais em `refined/` podem ser consultados diretamente via SQL utilizando o Amazon Athena.
 
