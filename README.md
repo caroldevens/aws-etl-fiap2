@@ -135,6 +135,7 @@ SELECT ticker, year, month,
 FROM b3_data.stocks_refined
 GROUP BY ticker, year, month
 ORDER BY ticker, year, month;
+'###
 
 # 📁 Estrutura do repositório
 .
